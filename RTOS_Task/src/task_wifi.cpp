@@ -10,26 +10,29 @@ void startAP()
 
 void startSTA()
 {
-    if (WIFI_SSID.isEmpty())
+    CoreConfig config;
+    if (!getLatestCoreConfig(config) || config.ssid.isEmpty())
     {
         vTaskDelete(NULL);
     }
 
     WiFi.mode(WIFI_STA);
 
-    if (WIFI_PASS.isEmpty())
+    if (config.pass.isEmpty())
     {
-        WiFi.begin(WIFI_SSID.c_str());
+        WiFi.begin(config.ssid.c_str());
     }
     else
     {
-        WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
+        WiFi.begin(config.ssid.c_str(), config.pass.c_str());
     }
 
     while (WiFi.status() != WL_CONNECTED)
     {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    Serial.print("STA IP: ");
+    Serial.println(WiFi.localIP());
     //Give a semaphore here
     xSemaphoreGive(xBinarySemaphoreInternet);
 }

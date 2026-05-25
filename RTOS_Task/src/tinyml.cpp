@@ -18,7 +18,7 @@ void setupTinyML()
     static tflite::MicroErrorReporter micro_error_reporter;
     error_reporter = &micro_error_reporter;
 
-    model = tflite::GetModel(dht_anomaly_model_tflite); // g_model_data is from model_data.h
+    model = tflite::GetModel(tempHumiModel); // g_model_data is from model_data.h
     if (model->version() != TFLITE_SCHEMA_VERSION)
     {
         error_reporter->Report("Model provided is schema version %d, not equal to supported version %d.",
@@ -48,14 +48,23 @@ void tiny_ml_task(void *pvParameters)
 {
 
     setupTinyML();
+    
+    const int BUZZER_PIN = 39;
+    pinMode(BUZZER_PIN, OUTPUT);
 
     while (1)
     {
 
         // Prepare input data (e.g., sensor readings)
         // For a simple example, let's assume a single float input
-        input->data.f[0] = glob_temperature;
-        input->data.f[1] = glob_humidity;
+        SensorData sensorData;
+        if (!getLatestSensorData(sensorData))
+        {
+            vTaskDelay(1000);
+            continue;
+        }
+        input->data.f[0] = sensorData.temperature;
+        input->data.f[1] = sensorData.humidity;
 
         // Run inference
         TfLiteStatus invoke_status = interpreter->Invoke();
@@ -69,6 +78,27 @@ void tiny_ml_task(void *pvParameters)
         float result = output->data.f[0];
         Serial.print("Inference result: ");
         Serial.println(result);
+
+        static int consecutive_alarms = 0; // Biến lưu số lần bất thường liên tiếp
+        const float THRESHOLD = 0.80;    
+        
+        if (result >= THRESHOLD) 
+        {
+            consecutive_alarms++;
+            Serial.print("Phát hiện bất thường lần ");
+            Serial.println(consecutive_alarms);
+
+            if (consecutive_alarms >= 3) 
+            {
+                Serial.println("Môi trường có sự cố!");
+                digitalWrite(BUZZER_PIN, HIGH);
+            }
+        } 
+        else 
+        {
+            consecutive_alarms = 0;
+            digitalWrite(BUZZER_PIN, LOW);
+        }
 
         vTaskDelay(5000);
     }

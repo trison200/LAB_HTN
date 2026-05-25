@@ -1,16 +1,74 @@
 #include "global.h"
-float glob_temperature = 0;
-float glob_humidity = 0;
 
-String WIFI_SSID;
-String WIFI_PASS;
-String CORE_IOT_TOKEN;
-String CORE_IOT_SERVER;
-String CORE_IOT_PORT;
+QueueHandle_t sensorQueue = nullptr;
+QueueHandle_t configQueue = nullptr;
+QueueHandle_t xQueueLed = nullptr;
+QueueHandle_t xQueueNeo = nullptr;
 
-String ssid = "ESP32-YOUR NETWORK HERE!!!";
-String password = "12345678";
-String wifi_ssid = "abcde";
-String wifi_password = "123456789";
-boolean isWifiConnected = false;
 SemaphoreHandle_t xBinarySemaphoreInternet = xSemaphoreCreateBinary();
+SemaphoreHandle_t semLedTemp = nullptr;
+SemaphoreHandle_t semNeo = nullptr;
+
+void initSharedQueues()
+{
+	if (sensorQueue == nullptr)
+	{
+		sensorQueue = xQueueCreate(1, sizeof(SensorData));
+	}
+	if (configQueue == nullptr)
+	{
+		configQueue = xQueueCreate(1, sizeof(CoreConfig));
+	}
+	if (xQueueLed == nullptr)
+	{
+		xQueueLed = xQueueCreate(1, sizeof(SensorData));
+	}
+	if (xQueueNeo == nullptr)
+	{
+		xQueueNeo = xQueueCreate(1, sizeof(SensorData));
+	}
+	if (semLedTemp == nullptr)
+	{
+		semLedTemp = xSemaphoreCreateBinary();
+	}
+	if (semNeo == nullptr)
+	{
+		semNeo = xSemaphoreCreateBinary();
+	}
+}
+
+bool updateSensorData(const SensorData &data)
+{
+	if (sensorQueue == nullptr)
+	{
+		return false;
+	}
+	return xQueueOverwrite(sensorQueue, &data) == pdTRUE;
+}
+
+bool getLatestSensorData(SensorData &out)
+{
+	if (sensorQueue == nullptr)
+	{
+		return false;
+	}
+	return xQueuePeek(sensorQueue, &out, 0) == pdTRUE;
+}
+
+bool updateCoreConfig(const CoreConfig &config)
+{
+	if (configQueue == nullptr)
+	{
+		return false;
+	}
+	return xQueueOverwrite(configQueue, &config) == pdTRUE;
+}
+
+bool getLatestCoreConfig(CoreConfig &out)
+{
+	if (configQueue == nullptr)
+	{
+		return false;
+	}
+	return xQueuePeek(configQueue, &out, 0) == pdTRUE;
+}

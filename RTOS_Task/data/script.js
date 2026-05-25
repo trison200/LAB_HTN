@@ -39,6 +39,14 @@ function onMessage(event) {
     console.log("📩 Nhận:", event.data);
     try {
         var data = JSON.parse(event.data);
+        if (data.page === "sensor" && data.value) {
+            if (gaugeTemp && data.value.temp !== undefined) {
+                gaugeTemp.refresh(data.value.temp);
+            }
+            if (gaugeHumi && data.value.humi !== undefined) {
+                gaugeHumi.refresh(data.value.humi);
+            }
+        }
         // Có thể thêm xử lý riêng nếu cần (ví dụ cập nhật trạng thái)
     } catch (e) {
         console.warn("Không phải JSON hợp lệ:", event.data);
@@ -58,11 +66,13 @@ function showSection(id, event) {
 }
 
 
-// ==================== HOME GAUGES ====================
-window.onload = function () {
-    const gaugeTemp = new JustGage({
+let gaugeTemp;
+let gaugeHumi;
+
+window.addEventListener('load', function () {
+    gaugeTemp = new JustGage({
         id: "gauge_temp",
-        value: 26,
+        value: 0,
         min: -10,
         max: 50,
         donut: true,
@@ -73,9 +83,9 @@ window.onload = function () {
         levelColors: ["#00BCD4", "#4CAF50", "#FFC107", "#F44336"]
     });
 
-    const gaugeHumi = new JustGage({
+    gaugeHumi = new JustGage({
         id: "gauge_humi",
-        value: 60,
+        value: 0,
         min: 0,
         max: 100,
         donut: true,
@@ -85,12 +95,7 @@ window.onload = function () {
         levelColorsGradient: true,
         levelColors: ["#42A5F5", "#00BCD4", "#0288D1"]
     });
-
-    setInterval(() => {
-        gaugeTemp.refresh(Math.floor(Math.random() * 15) + 20);
-        gaugeHumi.refresh(Math.floor(Math.random() * 40) + 40);
-    }, 3000);
-};
+});
 
 
 // ==================== DEVICE FUNCTIONS ====================

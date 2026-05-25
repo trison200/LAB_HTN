@@ -15,11 +15,13 @@ void Load_info_File()
   }
   else
   {
-    WIFI_SSID = strdup(doc["WIFI_SSID"]);
-    WIFI_PASS = strdup(doc["WIFI_PASS"]);
-    CORE_IOT_TOKEN = strdup(doc["CORE_IOT_TOKEN"]);
-    CORE_IOT_SERVER = strdup(doc["CORE_IOT_SERVER"]);
-    CORE_IOT_PORT = strdup(doc["CORE_IOT_PORT"]);
+    CoreConfig config;
+    config.ssid = String(doc["WIFI_SSID"] | "");
+    config.pass = String(doc["WIFI_PASS"] | "");
+    config.token = String(doc["CORE_IOT_TOKEN"] | "");
+    config.server = String(doc["CORE_IOT_SERVER"] | "");
+    config.port = String(doc["CORE_IOT_PORT"] | "");
+    updateCoreConfig(config);
   }
   file.close();
 }
@@ -44,6 +46,14 @@ void Save_info_File(String wifi_ssid, String wifi_pass, String CORE_IOT_TOKEN, S
   doc["CORE_IOT_TOKEN"] = CORE_IOT_TOKEN;
   doc["CORE_IOT_SERVER"] = CORE_IOT_SERVER;
   doc["CORE_IOT_PORT"] = CORE_IOT_PORT;
+
+  CoreConfig config;
+  config.ssid = wifi_ssid;
+  config.pass = wifi_pass;
+  config.token = CORE_IOT_TOKEN;
+  config.server = CORE_IOT_SERVER;
+  config.port = CORE_IOT_PORT;
+  updateCoreConfig(config);
 
   File configFile = LittleFS.open("/info.dat", "w");
   if (configFile)
@@ -70,7 +80,9 @@ bool check_info_File(bool check)
     Load_info_File();
   }
   
-  if (WIFI_SSID.isEmpty() && WIFI_PASS.isEmpty())
+  CoreConfig config;
+  const bool hasConfig = getLatestCoreConfig(config);
+  if (!hasConfig || (config.ssid.isEmpty() && config.pass.isEmpty()))
   {
     if (!check)
     {
